@@ -1,10 +1,10 @@
 export default async function handler(req) {
   if (req.method !== "POST") {
-    return { statusCode: 405, body: "Method Not Allowed" };
+    return new Response("Method Not Allowed", { status: 405 });
   }
 
   try {
-    const { contact, services, total, deposit, message, timestamp, viewCounts } = JSON.parse(req.body);
+    const { contact, services, total, deposit, message, timestamp, viewCounts } = await req.json();
     const pushKey = process.env.PUSHDEER_KEY;
 
     console.log("新线索:", { contact, services, total, deposit, message, timestamp, viewCounts });
@@ -29,34 +29,32 @@ export default async function handler(req) {
         `时间：${timestamp || new Date().toISOString()}`
       ].join("\n");
 
-      const pushResponse = await fetch("https://api2.pushdeer.com/message/push", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pushkey: pushKey,
-          text: "新客户咨询",
-          desp,
-          type: "markdown"
-        })
-      });
+      try {
+        const pushResponse = await fetch("https://api2.pushdeer.com/message/push", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pushkey: pushKey,
+            text: "新客户咨询",
+            desp,
+            type: "markdown"
+          })
+        });
 
-      if (!pushResponse.ok) {
-        const pushError = await pushResponse.text();
-        console.error("PushDeer 推送失败:", pushError);
+        if (!pushResponse.ok) {
+          const pushError = await pushResponse.text();
+          console.error("PushDeer 推送失败:", pushError);
+        }
+      } catch (pushError) {
+        console.error("PushDeer 请求失败:", pushError);
       }
     } else {
       console.warn("未配置 PUSHDEER_KEY，已跳过微信推送");
     }
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ success: true })
-    };
+    return Response.json({ success: true });
   } catch (error) {
     console.error("提交失败:", error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "提交失败" })
-    };
+    return Response.json({ error: "提交失败" }, { status: 500 });
   }
 }
