@@ -1,15 +1,34 @@
 import { useState, useEffect } from "react";
-import { pricingData, contact } from "../data/pricing";
+import {
+  calculateTotals,
+  contact,
+  formatServiceName,
+  getServicePrice,
+  pricingData,
+  VIEW_BASE,
+  VIEW_STEP_PRICE
+} from "../data/pricing";
 
 interface ModalFlowProps {
   isOpen: boolean;
   onClose: () => void;
-  initialSelected?: string[];
+  selectedServices: string[];
+  onSetSelectedServices: (services: string[]) => void;
+  onToggleService: (name: string) => void;
+  viewCounts: Record<string, number>;
+  onViewCountChange: (name: string, count: number) => void;
 }
 
-export default function ModalFlow({ isOpen, onClose, initialSelected = [] }: ModalFlowProps) {
+export default function ModalFlow({
+  isOpen,
+  onClose,
+  selectedServices,
+  onSetSelectedServices,
+  onToggleService,
+  viewCounts,
+  onViewCountChange
+}: ModalFlowProps) {
   const [step, setStep] = useState(1);
-  const [selectedServices, setSelectedServices] = useState<string[]>(initialSelected);
   const [contactInfo, setContactInfo] = useState("");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -18,12 +37,11 @@ export default function ModalFlow({ isOpen, onClose, initialSelected = [] }: Mod
   useEffect(() => {
     if (isOpen) {
       setStep(1);
-      setSelectedServices(initialSelected);
       setContactInfo("");
       setMessage("");
       setIsSuccess(false);
     }
-  }, [isOpen, initialSelected]);
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -38,19 +56,8 @@ export default function ModalFlow({ isOpen, onClose, initialSelected = [] }: Mod
 
   if (!isOpen) return null;
 
-  const total = selectedServices.reduce((sum, name) => {
-    const allItems = [...pricingData.client, ...pricingData.server, ...pricingData.extra];
-    const item = allItems.find(i => i.name === name);
-    return sum + (item?.price || 0);
-  }, 0);
-
-  const deposit = total * 0.5;
-
-  const toggleService = (name: string) => {
-    setSelectedServices(prev =>
-      prev.includes(name) ? prev.filter(s => s !== name) : [...prev, name]
-    );
-  };
+  const { total, deposit } = calculateTotals(selectedServices, viewCounts);
+  const firstFrontendService = pricingData.client.find(item => item.name !== "UI设计" && selectedServices.includes(item.name))?.name;
 
   const handleSubmit = async () => {
     if (!contactInfo.trim()) return;
@@ -63,6 +70,7 @@ export default function ModalFlow({ isOpen, onClose, initialSelected = [] }: Mod
         body: JSON.stringify({
           contact: contactInfo,
           services: selectedServices,
+          viewCounts,
           total,
           deposit,
           message,
@@ -107,28 +115,28 @@ export default function ModalFlow({ isOpen, onClose, initialSelected = [] }: Mod
             <h3 className="text-xl font-bold text-gray-900 mb-6">选择服务类型</h3>
             <div className="grid grid-cols-2 gap-3">
               <button
-                onClick={() => { setSelectedServices(pricingData.client.map(i => i.name)); setStep(2); }}
+                onClick={() => { onSetSelectedServices(pricingData.client.map(i => i.name)); setStep(2); }}
                 className="p-4 border-2 border-gray-200 rounded-xl hover:border-blue-500 transition-colors text-left"
               >
                 <div className="text-lg font-semibold text-gray-900">App开发</div>
                 <div className="text-sm text-gray-500">Android / iOS / Web</div>
               </button>
               <button
-                onClick={() => { setSelectedServices(pricingData.server.map(i => i.name)); setStep(2); }}
+                onClick={() => { onSetSelectedServices(pricingData.server.map(i => i.name)); setStep(2); }}
                 className="p-4 border-2 border-gray-200 rounded-xl hover:border-blue-500 transition-colors text-left"
               >
                 <div className="text-lg font-semibold text-gray-900">后端系统</div>
                 <div className="text-sm text-gray-500">API / 管理后台</div>
               </button>
               <button
-                onClick={() => { setSelectedServices([...pricingData.client.map(i => i.name), ...pricingData.server.map(i => i.name)]); setStep(2); }}
+                onClick={() => { onSetSelectedServices([...pricingData.client.map(i => i.name), ...pricingData.server.map(i => i.name)]); setStep(2); }}
                 className="p-4 border-2 border-gray-200 rounded-xl hover:border-blue-500 transition-colors text-left"
               >
                 <div className="text-lg font-semibold text-gray-900">全栈开发</div>
                 <div className="text-sm text-gray-500">前后端全套</div>
               </button>
               <button
-                onClick={() => setStep(2)}
+                onClick={() => setStep(4)}
                 className="p-4 border-2 border-gray-200 rounded-xl hover:border-blue-500 transition-colors text-left"
               >
                 <div className="text-lg font-semibold text-gray-900">先聊聊</div>
@@ -144,22 +152,42 @@ export default function ModalFlow({ isOpen, onClose, initialSelected = [] }: Mod
             <h3 className="text-xl font-bold text-gray-900 mb-6">勾选服务范围</h3>
             <div className="space-y-3 max-h-64 overflow-y-auto">
               {[...pricingData.client, ...pricingData.server, ...pricingData.extra].map(item => (
-                <label key={item.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedServices.includes(item.name)}
-                      onChange={() => toggleService(item.name)}
-                      className="w-5 h-5"
-                    />
-                    <span className="text-gray-800">
-                      {item.name === "Deploy" ? "应用上架" : 
-                       item.name === "Admin" ? "管理后台" : 
-                       item.name === "API" ? "API接口" : `${item.name}开发`}
-                    </span>
-                  </div>
-                  <span className="text-gray-600">¥{item.price.toLocaleString()}</span>
-                </label>
+                <div key={item.name} className="rounded-lg bg-gray-50 p-3">
+                  <label className="flex items-center justify-between cursor-pointer hover:bg-gray-100 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedServices.includes(item.name)}
+                        onChange={() => onToggleService(item.name)}
+                        className="w-5 h-5"
+                      />
+                      <div>
+                        <span className="text-gray-800">{formatServiceName(item.name)}</span>
+                        {item.type === "view" && (
+                          <p className="text-xs text-gray-500">¥10,000 起 / 1-50 个视图，每增加 1 个视图 +¥{VIEW_STEP_PRICE}</p>
+                        )}
+                        {item.note && <p className="text-xs text-gray-500">{item.note}</p>}
+                      </div>
+                    </div>
+                    <span className="text-gray-600">¥{getServicePrice(item, selectedServices, viewCounts).toLocaleString()}</span>
+                  </label>
+                  {selectedServices.includes(item.name) && item.type === "view" && (
+                    <div className="mt-3 flex items-center justify-between gap-3 border-t border-gray-200 pt-3">
+                      <span className="text-sm text-gray-600">视图数量</span>
+                      {item.name === "UI设计" || (!selectedServices.includes("UI设计") && item.name === firstFrontendService) ? (
+                        <input
+                          type="number"
+                          min={1}
+                          value={viewCounts.UI设计 ?? VIEW_BASE}
+                          onChange={e => onViewCountChange("UI设计", Number(e.target.value) || 1)}
+                          className="w-24 rounded-lg border border-gray-300 px-3 py-2 text-right outline-none focus:border-blue-500"
+                        />
+                      ) : (
+                        <span className="text-sm text-gray-500">跟随 UI：{viewCounts.UI设计 ?? VIEW_BASE}</span>
+                      )}
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
             <div className="mt-4 p-4 bg-gray-900 text-white rounded-lg">
@@ -178,13 +206,13 @@ export default function ModalFlow({ isOpen, onClose, initialSelected = [] }: Mod
             <div className="bg-gray-50 p-6 rounded-xl mb-6">
               <div className="text-sm text-gray-500 mb-2">已选服务</div>
               <div className="text-gray-700 mb-4">
-                {selectedServices.length > 0 ? selectedServices.join(" + ") : "待定"}
+                {selectedServices.length > 0 ? selectedServices.map(formatServiceName).join(" + ") : "待定"}
               </div>
               <div className="text-3xl font-bold text-gray-900 mb-2">¥{total.toLocaleString()}</div>
               <div className="text-gray-500">预付 ¥{deposit.toLocaleString()}</div>
             </div>
             <p className="text-sm text-gray-500">
-              * 具体价格根据需求评估后确定
+              * 上架仅为服务费，不包含账号与材料费，敏感性 App 不能保证一定上架
             </p>
           </div>
         );

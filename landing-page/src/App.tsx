@@ -9,18 +9,39 @@ import Rules from "./components/Rules";
 import CTA from "./components/CTA";
 import FloatingButton from "./components/FloatingButton";
 import ModalFlow from "./components/ModalFlow";
+import { getDefaultViewCount, toggleServiceSelection } from "./data/pricing";
 
 function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [viewCounts, setViewCounts] = useState<Record<string, number>>({
+    UI设计: getDefaultViewCount("UI设计"),
+    Android: getDefaultViewCount("Android"),
+    iOS: getDefaultViewCount("iOS"),
+    Web: getDefaultViewCount("Web")
+  });
 
   const handleOpenModal = () => setIsModalOpen(true);
   const handleCloseModal = () => setIsModalOpen(false);
 
   const handleToggleService = (name: string) => {
-    setSelectedServices(prev =>
-      prev.includes(name) ? prev.filter(s => s !== name) : [...prev, name]
-    );
+    setSelectedServices(prev => toggleServiceSelection(prev, name));
+  };
+
+  const handleViewCountChange = (name: string, count: number) => {
+    const normalizedCount = Math.max(1, count);
+
+    setViewCounts(prev => ({
+      ...prev,
+      [name]: normalizedCount,
+      ...(name === "UI设计"
+        ? {
+            Android: normalizedCount,
+            iOS: normalizedCount,
+            Web: normalizedCount
+          }
+        : {})
+    }));
   };
 
   const handleGetQuote = () => {
@@ -36,6 +57,8 @@ function App() {
       <Calculator
         selected={selectedServices}
         onToggle={handleToggleService}
+        viewCounts={viewCounts}
+        onViewCountChange={handleViewCountChange}
         onGetQuote={handleGetQuote}
       />
       <Process />
@@ -45,7 +68,11 @@ function App() {
       <ModalFlow
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        initialSelected={selectedServices}
+        selectedServices={selectedServices}
+        onSetSelectedServices={setSelectedServices}
+        onToggleService={handleToggleService}
+        viewCounts={viewCounts}
+        onViewCountChange={handleViewCountChange}
       />
     </div>
   );

@@ -1,5 +1,6 @@
 export default function Services() {
   const services = [
+    { title: "UI 设计", items: ["产品原型", "高保真界面", "设计规范"] },
     { title: "客户端开发", items: ["Android", "iOS", "Web"] },
     { title: "服务端开发", items: ["API 接口", "后台管理系统"] },
     { title: "上线支持", items: ["应用上架", "服务器部署"] },
@@ -12,7 +13,7 @@ export default function Services() {
         <h2 className="text-2xl md:text-3xl font-bold text-gray-900 text-center mb-12">
           可提供服务
         </h2>
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-6">
           {services.map((service, i) => (
             <div key={i} className="border border-gray-200 rounded-xl p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">{service.title}</h3>
