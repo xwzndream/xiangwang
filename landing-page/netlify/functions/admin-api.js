@@ -11,6 +11,14 @@ function database() {
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
+function decrypt(value) {
+  const [ivValue, tagValue, encryptedValue] = String(value || "").split(".");
+  const key = crypto.createHash("sha256").update(process.env.AUTH_ENCRYPTION_KEY || "").digest();
+  const decipher = crypto.createDecipheriv("aes-256-gcm", key, Buffer.from(ivValue, "base64"));
+  decipher.setAuthTag(Buffer.from(tagValue, "base64"));
+  return Buffer.concat([decipher.update(Buffer.from(encryptedValue, "base64")), decipher.final()]).toString("utf8");
+}
+
 function sign(value) {
   return crypto.createHmac("sha256", process.env.ADMIN_SESSION_SECRET || "").update(value).digest("base64url");
 }
@@ -68,12 +76,26 @@ export default async function handler(req) {
       const delivered = input.delivered_at ? new Date(input.delivered_at) : null;
       const expires = delivered ? new Date(delivered.getTime() + 30 * 86400000).toISOString() : null;
       const projectType = input.project_type === "landing_page" ? "landing_page" : "other";
-      const { data, error } = await client.from("projects").insert({ customer_id: input.customer_id, name: input.name, project_type: projectType, deployment_enabled: projectType === "landing_page", status: delivered ? "active" : "development", delivered_at: delivered?.toISOString() || null, service_expires_at: expires, github_repo: input.github_repo || "", netlify_site_url: input.netlify_site_url || "" }).select().single();
+      const { data, error } = await client.from("projects").insert({ customer_id: input.customer_id, name: input.name, project_type: projectType, deployment_enabled: projectType === "landing_page", status: delivered ? "active" : "development", delivered_at: delivered?.toISOString() || null, service_expires_at: expires, github_repo: input.github_repo || "", netlify_site_id: input.netlify_site_id || "", netlify_site_url: input.netlify_site_url || "" }).select().single();
       if (error) throw error;
       return json(data, 201);
     }
     if (action === "project-action" && req.method === "POST") {
       const { id, operation } = await req.json();
+      if (operation === "deploy") {
+        const { data: project, error: projectError } = await client.from("projects").select("*").eq("id", id).single();
+        if (projectError) throw projectError;
+        if (!project.deployment_enabled) return json({ error: "该项目类型暂不允许部署" }, 400);
+        if (!project.netlify_site_id) return json({ error: "请先为项目填写 Netlify Site ID" }, 400);
+        const { data: connection, error: connectionError } = await client.from("provider_connections").select("encrypted_token").eq("provider", "netlify").eq("is_default", true).eq("status", "active").limit(1).maybeSingle();
+        if (connectionError || !connection) return json({ error: "尚未配置默认 Netlify 授权" }, 400);
+        const response = await fetch(`https://api.netlify.com/api/v1/sites/${project.netlify_site_id}/builds`, { method:"POST", headers:{Authorization:`Bearer ${decrypt(connection.encrypted_token)}`} });
+        const result = await response.json().catch(()=>({}));
+        const status = response.ok ? "queued" : "failed";
+        await client.from("deployments").insert({project_id:id,status,deploy_url:project.netlify_site_url,error_log:response.ok?"":JSON.stringify(result)});
+        if (!response.ok) return json({error:"Netlify 未能启动部署，请检查授权和 Site ID"},502);
+        return json({success:true,build_id:result.id});
+      }
       const changes = operation === "offline" ? { status: "offline", offline_at: new Date().toISOString() } : {};
       const { error } = await client.from("projects").update(changes).eq("id", id);
       if (error) throw error;
