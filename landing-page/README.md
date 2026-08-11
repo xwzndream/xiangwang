@@ -1,4 +1,10 @@
-# React + TypeScript + Vite
+# 向往软件工作室官网
+
+公开官网与仅供管理员使用的后台管理系统。
+
+- 官网：`/`
+- 后台管理系统：`/admin`
+- 后台上线配置参见 `ADMIN_SETUP.md`
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 

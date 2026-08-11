@@ -2,9 +2,13 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
+import AdminApp from './admin/AdminApp.tsx'
+
+const isAdmin = window.location.pathname === '/admin' || window.location.pathname.startsWith('/admin/')
+document.title = isAdmin ? '向往工作室' : '向往软件工作室'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    {isAdmin ? <AdminApp /> : <App />}
   </StrictMode>,
 )
