@@ -1,87 +1,77 @@
 export interface ServiceItem {
   name: string;
   price: number;
-  type?: "view";
-  base?: number;
-  note?: string;
+  description: string;
+  includes?: string[];
+  startingAt?: boolean;
 }
 
-export const VIEW_BASE = 50;
-export const VIEW_STEP_PRICE = 200;
+export const corePackages: ServiceItem[] = [
+  {
+    name: "静态官网 / 个人落地页",
+    price: 1000,
+    description: "适合个人作品集、企业展示、引流官网与单页落地页",
+    includes: ["AI 自适应官网", "手机电脑适配", "基础内容排版", "Netlify 云端部署"]
+  },
+  {
+    name: "轻量化工具开发",
+    price: 8000,
+    startingAt: true,
+    description: "适合办公自动化、批量处理、内部工具与数据辅助",
+    includes: ["Windows / Mac 工具", "浏览器插件", "工具类小程序", "完整源码交付"]
+  },
+  {
+    name: "移动端 APP",
+    price: 10000,
+    startingAt: true,
+    description: "仅承接工具类、内部业务类 APP，不做高 UI 需求项目",
+    includes: ["Android / iOS", "核心功能开发", "完整调试", "源码交付"]
+  },
+  {
+    name: "后端自动化 / AI 智能服务",
+    price: 6000,
+    startingAt: true,
+    description: "适合自动化、数据处理、API 与轻量化 AI 后台",
+    includes: ["自动化脚本", "数据采集清洗", "API 接口", "视频 / 文件批处理"]
+  }
+];
 
-export const pricingData: {
-  client: ServiceItem[];
-  server: ServiceItem[];
-  extra: ServiceItem[];
-} = {
-  client: [
-    { name: "UI设计", price: 10000, type: "view", base: VIEW_BASE },
-    { name: "Android", price: 10000, type: "view", base: VIEW_BASE },
-    { name: "iOS", price: 10000, type: "view", base: VIEW_BASE },
-    { name: "Web", price: 10000, type: "view", base: VIEW_BASE }
-  ],
-  server: [
-    { name: "API", price: 10000 },
-    { name: "Admin", price: 10000 }
-  ],
-  extra: [
-    { name: "上架", price: 5000, note: "仅服务费，不含账号与材料费，敏感性 App 不能保证一定上架" }
-  ]
-};
+export const extraServices: ServiceItem[] = [
+  { name: "AI 模型专项训练", price: 10000, startingAt: true, description: "模型微调与推理部署，客户提供数据集" },
+  { name: "项目修改 / 内容更新 / 重新部署", price: 500, description: "按次计费" },
+  { name: "开发者账号协助注册", price: 500, description: "按账号计费" },
+  { name: "小程序上架协助", price: 400, description: "协助准备并提交上架材料" },
+  { name: "浏览器插件商店上架", price: 800, description: "Chrome / Edge 商店上架协助" },
+  { name: "新增独立功能", price: 1000, startingAt: true, description: "按功能复杂度最终确认" },
+  { name: "服务器环境部署调试", price: 1500, startingAt: true, description: "通常为 ¥1,500–2,000" }
+];
+
+export const allServices = [...corePackages, ...extraServices];
 
 export const contact = {
+  name: "向先生",
   phone: "17521217112",
   wechat: "17521217112"
 };
 
-export function getDefaultViewCount(name: string): number {
-  const item = pricingData.client.find(service => service.name === name);
-  return item?.base ?? VIEW_BASE;
+export function toggleServiceSelection(current: string[], name: string): string[] {
+  return current.includes(name) ? current.filter(item => item !== name) : [...current, name];
 }
 
-export function getServicePrice(
-  item: ServiceItem,
-  _selectedServices: string[],
-  viewCounts: Record<string, number>
-): number {
-  if (item.type === "view") {
-    const baseViews = item.base ?? VIEW_BASE;
-    const currentViews = Math.max(1, viewCounts[item.name] ?? viewCounts.UI设计 ?? baseViews);
-    const extraViews = Math.max(0, currentViews - baseViews);
-    return item.price + (extraViews * VIEW_STEP_PRICE);
-  }
-
-  return item.price;
-}
-
-export function calculateTotals(selectedServices: string[], viewCounts: Record<string, number>) {
-  const allItems = [...pricingData.client, ...pricingData.server, ...pricingData.extra];
-  const total = selectedServices.reduce((sum, name) => {
-    const item = allItems.find(service => service.name === name);
-    return sum + (item ? getServicePrice(item, selectedServices, viewCounts) : 0);
+export function calculateQuote(selected: string[]) {
+  const total = selected.reduce((sum, name) => {
+    const item = allServices.find(service => service.name === name);
+    return sum + (item?.price ?? 0);
   }, 0);
+  const isLargeProject = total >= 10000;
 
   return {
     total,
-    deposit: total * 0.5
+    paymentRule: isLargeProject ? "50% 预付款，验收后支付尾款" : "一次性全款，确认付款后开工",
+    upfrontPayment: isLargeProject ? total * 0.5 : total
   };
 }
 
-export function formatServiceName(name: string): string {
-  if (name === "UI设计") return "UI 设计";
-  if (name === "Android") return "Android 开发";
-  if (name === "iOS") return "iOS 开发";
-  if (name === "Web") return "Web 开发";
-  if (name === "API") return "API 接口";
-  if (name === "Admin") return "管理后台";
-  if (name === "上架") return "应用上架";
-  return name;
-}
-
-export function toggleServiceSelection(current: string[], name: string): string[] {
-  if (current.includes(name)) {
-    return current.filter(service => service !== name);
-  }
-
-  return [...current, name];
+export function formatPrice(item: ServiceItem): string {
+  return `¥${item.price.toLocaleString("zh-CN")}${item.startingAt ? " 起" : ""}`;
 }

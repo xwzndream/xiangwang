@@ -1,31 +1,3 @@
-export default function Rules() {
-  const rules = [
-    "预付 50% 定金，完成后付尾款",
-    "UI 设计为 1-50 个视图 ¥10,000 起，超出部分每个视图 +¥200",
-    "Android、iOS、Web 分开计费，各端均为 1-50 个视图 ¥10,000 起，超出部分每个视图 +¥200",
-    "应用上架仅收服务费，不含账号与材料费，敏感性 App 不能保证一定上架",
-    "每个功能支持 1-2 次修改",
-    "超出需求范围按新增收费",
-    "提供 7 天基础售后支持"
-  ];
-
-  return (
-    <section className="py-16 px-6">
-      <div className="max-w-4xl mx-auto">
-        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 text-center mb-8">
-          合作说明
-        </h2>
-        <div className="bg-gray-50 rounded-xl p-8">
-          <ul className="space-y-4">
-            {rules.map((rule, i) => (
-              <li key={i} className="flex items-start gap-3">
-                <span className="w-6 h-6 bg-black text-white rounded-full flex items-center justify-center text-sm flex-shrink-0 mt-0.5">✓</span>
-                <span className="text-gray-700">{rule}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-    </section>
-  );
-}
+import { ChatCircleDots, Code, FileText, ShieldCheck } from "@phosphor-icons/react";
+import SectionHeading from "./SectionHeading";
+export default function Rules(){const items=[[ChatCircleDots,"独立开发","一对一沟通，直接对接向先生"],[FileText,"透明交付","书面清单与阶段进度清晰可查"],[Code,"源码交付","全款结清后完整交付源码与文档"],[ShieldCheck,"售后支持","交付后 15 天免费修复功能性 BUG"]] as const;return <section className="editorial-section trust-section" id="about"><SectionHeading number="05" title="值得信赖的合作伙伴" eyebrow="TRUST"/><div className="trust-grid">{items.map(([Icon,title,desc])=><div key={title}><Icon weight="duotone"/><span><strong>{title}</strong><small>{desc}</small></span></div>)}</div></section>}

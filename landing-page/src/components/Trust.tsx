@@ -1,26 +1,2 @@
-export default function Trust() {
-  const items = [
-    { title: "独立全栈开发", desc: "沟通成本低，一个人搞定前后端" },
-    { title: "报价清晰透明", desc: "不做低价引流，不随意加价" },
-    { title: "从0到上线全流程", desc: "设计、开发、部署全程负责" },
-    { title: "长期维护支持", desc: "不做一次性项目，持续迭代" }
-  ];
-
-  return (
-    <section className="py-16 px-6 bg-gray-50">
-      <div className="max-w-4xl mx-auto">
-        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 text-center mb-12">
-          为什么选择我
-        </h2>
-        <div className="grid md:grid-cols-2 gap-6">
-          {items.map((item, i) => (
-            <div key={i} className="bg-white p-6 rounded-xl shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">{item.title}</h3>
-              <p className="text-gray-600">{item.desc}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
+import { ChatCircleDots, Code, FileText, ShieldCheck } from "@phosphor-icons/react";
+export default function Trust() { const items = [[ChatCircleDots,"独立开发","一对一沟通，责任到人"],[FileText,"透明交付","进度透明，节点可控"],[Code,"源码交付","完整源码与文档交付"],[ShieldCheck,"售后支持","15 天功能性 BUG 维护"]] as const; return <section className="promise-strip"><div className="promise-lead"><strong>独立交付，专注结果。</strong><p>不追求庞大团队与冗长流程，专注核心功能快速上线。由向先生一对一承接，从需求到交付全程负责。</p></div><div className="promise-items">{items.map(([Icon,title,desc])=><div key={title}><Icon weight="duotone"/><span><strong>{title}</strong><small>{desc}</small></span></div>)}</div></section> }

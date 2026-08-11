@@ -1,28 +1,4 @@
-interface HeroProps {
-  onOpenModal: () => void;
-}
-
-export default function Hero({ onOpenModal }: HeroProps) {
-  return (
-    <section className="min-h-[80vh] flex flex-col justify-center items-center px-6 py-16 text-center">
-      <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 max-w-3xl">
-        全栈开发 / 项目外包 / 快速交付
-      </h1>
-      <p className="text-lg md:text-xl text-gray-600 mb-4 max-w-2xl">
-        帮你把想法做成产品（Web / App / 后端系统）
-      </p>
-      <p className="text-base text-gray-500 mb-8">
-        报价透明 | 支持分阶段开发 | 可长期维护
-      </p>
-      <button
-        onClick={onOpenModal}
-        className="bg-black text-white px-8 py-4 rounded-lg text-lg font-medium hover:bg-gray-800 transition-colors shadow-lg"
-      >
-        👉 立即获取方案与报价
-      </button>
-      <p className="mt-6 text-gray-400 text-sm">
-        👇 30秒获取项目报价
-      </p>
-    </section>
-  );
-}
+import { ArrowRight, CheckCircle, Code, FileText, RocketLaunch } from "@phosphor-icons/react";
+import heroGraphic from "../assets/hero-editorial.png";
+interface HeroProps { onOpenModal: () => void }
+export default function Hero({ onOpenModal }: HeroProps) { const strengths = [[CheckCircle, "需求清晰"], [FileText, "原型设计"], [Code, "开发实现"], [CheckCircle, "测试交付"], [RocketLaunch, "上线运维"]] as const; return <main id="top" className="hero-section"><div className="hero-copy"><span className="lime-tag">独立开发者 · AI 驱动交付</span><h1>AI 极速软件开发 ·<br/>低成本功能落地</h1><p>用 AI 提升开发效率，以工程化思维把想法快速变为可用产品。独立交付、灵活沟通、源码交付、持续迭代。</p><div className="strength-chips">{strengths.map(([Icon, text]) => <span key={text}><Icon weight="fill" />{text}</span>)}</div><button className="button button-primary hero-button" onClick={onOpenModal}>立即咨询合作 <ArrowRight weight="bold" /></button><small className="hero-note">快速响应 · 按期交付 · 项目交付快</small></div><div className="hero-art"><img src={heroGraphic} alt="向往软件工作室编辑式品牌视觉" /></div></main> }
