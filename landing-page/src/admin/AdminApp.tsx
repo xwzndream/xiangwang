@@ -22,6 +22,8 @@ async function api(action:string, options:RequestInit = {}) {
   const response = await fetch(`/.netlify/functions/admin-api?action=${encodeURIComponent(action)}`, {
     credentials:"include", headers:{"Content-Type":"application/json", ...(options.headers || {})}, ...options,
   });
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) throw new Error("本地后台接口未启动，请使用 Netlify Dev 启动完整后台");
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || "请求失败");
   return data;
@@ -40,8 +42,12 @@ function AdminApp() {
 
   const load = async () => {
     setLoading(true);
-    try { setData(await api("dashboard")); setAuthenticated(true); }
-    catch (error) { if ((error as Error).message.includes("未登录")) setAuthenticated(false); else messageApi.error((error as Error).message); }
+    try {
+      const result = await api("dashboard");
+      setData({customers:result.customers||[],leads:result.leads||[],projects:result.projects||[],connections:result.connections||[]});
+      setAuthenticated(true);
+    }
+    catch (error) { setAuthenticated(false); if (!(error as Error).message.includes("未登录")) messageApi.warning((error as Error).message); }
     finally { setLoading(false); }
   };
   useEffect(() => { void load(); }, []);
