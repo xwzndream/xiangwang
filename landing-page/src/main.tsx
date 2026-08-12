@@ -5,7 +5,7 @@ import App from './App.tsx'
 import AdminApp from './admin/AdminApp.tsx'
 
 const isAdmin = window.location.pathname === '/admin' || window.location.pathname.startsWith('/admin/')
-document.title = isAdmin ? '向往工作室' : '向往软件工作室'
+document.title = isAdmin ? '后台管理' : '向往软件工作室'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
