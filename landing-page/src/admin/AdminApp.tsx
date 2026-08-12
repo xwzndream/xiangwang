@@ -14,7 +14,7 @@ import "./admin.css";
 
 type Customer = { id:string; name:string; contact:string; status:string; created_at:string; notes?:string };
 type Lead = { id:string; contact:string; services:string[]; total:number; status:string; deployment_eligible:boolean; created_at:string };
-type Project = { id:string; customer_id:string; name:string; project_type:string; deployment_enabled:boolean; status:string; service_expires_at?:string; github_repo?:string; netlify_site_url?:string; offline_at?:string };
+type Project = { id:string; customer_id:string; name:string; project_type:string; deployment_enabled:boolean; status:string; delivered_at?:string; service_expires_at?:string; github_repo?:string; netlify_site_url?:string; offline_at?:string };
 type Connection = { id:string; provider:string; account_name:string; is_default:boolean; status:string };
 type Dashboard = { customers:Customer[]; leads:Lead[]; projects:Project[]; connections:Connection[] };
 
@@ -66,7 +66,9 @@ function AdminApp() {
     projectForm.resetFields(); setDrawer(null); await load(); messageApi.success("项目已创建");
   };
   const projectAction = async (project:Project, action:string) => {
-    Modal.confirm({title:action === "offline" ? "确认下架项目？" : "确认触发 Netlify 自动部署？",content:`项目：${project.name}`,okText:"确认",cancelText:"取消",async onOk(){try{await api("project-action",{method:"POST",body:JSON.stringify({id:project.id,operation:action})});await load();messageApi.success(action==="deploy"?"Netlify 已开始部署":"项目已下架");}catch(error){messageApi.error((error as Error).message);}}});
+    const titles:Record<string,string> = {deploy:"确认触发 Netlify 自动部署？",offline:"确认下架网站？",deliver:"确认项目已交付？",complete:"确认项目已完成？"};
+    const success:Record<string,string> = {deploy:"Netlify 已开始部署",offline:"网站已下架",deliver:"项目已标记为交付",complete:"项目已标记为完成"};
+    Modal.confirm({title:titles[action]||"确认项目操作？",content:`项目：${project.name}`,okText:"确认",cancelText:"取消",async onOk(){try{await api("project-action",{method:"POST",body:JSON.stringify({id:project.id,operation:action})});await load();messageApi.success(success[action]||"操作成功");}catch(error){messageApi.error((error as Error).message);}}});
   };
 
   if (authenticated === null) return <div className="admin-loading">正在加载后台管理系统…</div>;
@@ -81,7 +83,8 @@ function AdminApp() {
   ];
   const customerColumns = [{title:"客户",dataIndex:"name"},{title:"联系方式",dataIndex:"contact"},{title:"状态",dataIndex:"status",render:(v:string)=><Tag color="blue">{v}</Tag>},{title:"建档时间",dataIndex:"created_at",render:(v:string)=>dayjs(v).format("YYYY-MM-DD HH:mm")}];
   const leadColumns = [{title:"联系方式",dataIndex:"contact"},{title:"咨询服务",dataIndex:"services",render:(v:string[])=>(v||[]).join("、")},{title:"估价",dataIndex:"total",render:(v:number)=>`¥${Number(v||0).toLocaleString()}`},{title:"部署资格",dataIndex:"deployment_eligible",render:(v:boolean)=>v?<Tag color="green">静态官网可部署</Tag>:<Tag>无需部署</Tag>},{title:"状态",dataIndex:"status",render:(v:string)=><Tag>{v}</Tag>},{title:"提交时间",dataIndex:"created_at",render:(v:string)=>dayjs(v).format("YYYY-MM-DD HH:mm")}];
-  const projectColumns = [{title:"项目",dataIndex:"name"},{title:"类型",dataIndex:"project_type",render:(v:string)=>v==="landing_page"?"静态官网 / 个人落地页":"其他项目"},{title:"状态",dataIndex:"status",render:(v:string)=><Tag color={v==="active"?"green":"orange"}>{v}</Tag>},{title:"免费管理到期",dataIndex:"service_expires_at",render:(v:string)=>v?dayjs(v).format("YYYY-MM-DD"):"未交付"},{title:"代码仓库",dataIndex:"github_repo",render:(v:string)=>v?<a href={v} target="_blank">GitHub</a>:"未关联"},{title:"网站",dataIndex:"netlify_site_url",render:(v:string)=>v?<a href={v} target="_blank">打开</a>:"未关联"},{title:"操作",render:(_:unknown,p:Project)=><Space>{p.deployment_enabled&&<Button size="small" icon={<CloudUploadOutlined/>} onClick={()=>projectAction(p,"deploy")}>更新部署</Button>}{p.deployment_enabled&&<Button size="small" danger onClick={()=>projectAction(p,"offline")}>下架</Button>}{!p.deployment_enabled&&<Tag>暂不需要部署</Tag>}</Space>}];
+  const statusLabels:Record<string,string> = {development:"制作中",delivered:"已交付",completed:"已完成",active:"服务中",offline:"已下架"};
+  const projectColumns = [{title:"项目",dataIndex:"name"},{title:"类型",dataIndex:"project_type",render:(v:string)=>v==="landing_page"?"静态官网 / 个人落地页":"其他套餐项目"},{title:"状态",dataIndex:"status",render:(v:string)=><Tag color={v==="delivered"||v==="completed"||v==="active"?"green":v==="offline"?"default":"orange"}>{statusLabels[v]||v}</Tag>},{title:"交付日期",dataIndex:"delivered_at",render:(v:string)=>v?dayjs(v).format("YYYY-MM-DD"):"尚未交付"},{title:"网站免费管理到期",render:(_:unknown,p:Project)=>p.deployment_enabled?(p.service_expires_at?dayjs(p.service_expires_at).format("YYYY-MM-DD"):"交付后计算"):"不适用"},{title:"代码仓库",dataIndex:"github_repo",render:(v:string)=>v?<a href={v} target="_blank" rel="noreferrer">GitHub</a>:"—"},{title:"网站",dataIndex:"netlify_site_url",render:(v:string)=>v?<a href={v} target="_blank" rel="noreferrer">打开</a>:"—"},{title:"交付管理",render:(_:unknown,p:Project)=><Space>{!p.delivered_at&&<Button size="small" type="primary" onClick={()=>projectAction(p,"deliver")}>标记已交付</Button>}{p.status!=="completed"&&<Button size="small" onClick={()=>projectAction(p,"complete")}>标记已完成</Button>}</Space>},{title:"网站部署",render:(_:unknown,p:Project)=>p.deployment_enabled?<Space><Button size="small" icon={<CloudUploadOutlined/>} onClick={()=>projectAction(p,"deploy")}>更新部署</Button><Button size="small" danger onClick={()=>projectAction(p,"offline")}>下架</Button></Space>:<Typography.Text type="secondary">非网站项目</Typography.Text>}];
 
   const content = section === "customers" ? <Card title="客户管理" extra={<Button type="primary" icon={<PlusOutlined/>} onClick={()=>setDrawer("customer")}>新建客户</Button>}><Table rowKey="id" loading={loading} dataSource={data.customers} columns={customerColumns}/></Card>
     : section === "leads" ? <Card title="咨询记录"><Table rowKey="id" loading={loading} dataSource={data.leads} columns={leadColumns}/></Card>

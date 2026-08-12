@@ -74,9 +74,9 @@ export default async function handler(req) {
     if (action === "projects" && req.method === "POST") {
       const input = await req.json();
       const delivered = input.delivered_at ? new Date(input.delivered_at) : null;
-      const expires = delivered ? new Date(delivered.getTime() + 30 * 86400000).toISOString() : null;
       const projectType = input.project_type === "landing_page" ? "landing_page" : "other";
-      const { data, error } = await client.from("projects").insert({ customer_id: input.customer_id, name: input.name, project_type: projectType, deployment_enabled: projectType === "landing_page", status: delivered ? "active" : "development", delivered_at: delivered?.toISOString() || null, service_expires_at: expires, github_repo: input.github_repo || "", netlify_site_id: input.netlify_site_id || "", netlify_site_url: input.netlify_site_url || "" }).select().single();
+      const expires = delivered && projectType === "landing_page" ? new Date(delivered.getTime() + 30 * 86400000).toISOString() : null;
+      const { data, error } = await client.from("projects").insert({ customer_id: input.customer_id, name: input.name, project_type: projectType, deployment_enabled: projectType === "landing_page", status: delivered ? "delivered" : "development", delivered_at: delivered?.toISOString() || null, service_expires_at: expires, github_repo: input.github_repo || "", netlify_site_id: input.netlify_site_id || "", netlify_site_url: input.netlify_site_url || "" }).select().single();
       if (error) throw error;
       return json(data, 201);
     }
@@ -96,7 +96,20 @@ export default async function handler(req) {
         if (!response.ok) return json({error:"Netlify 未能启动部署，请检查授权和 Site ID"},502);
         return json({success:true,build_id:result.id});
       }
-      const changes = operation === "offline" ? { status: "offline", offline_at: new Date().toISOString() } : {};
+      let changes = {};
+      if (operation === "offline") changes = { status: "offline", offline_at: new Date().toISOString() };
+      if (operation === "deliver") {
+        const { data: project, error: projectError } = await client.from("projects").select("project_type").eq("id", id).single();
+        if (projectError) throw projectError;
+        const deliveredAt = new Date();
+        changes = {
+          status: "delivered",
+          delivered_at: deliveredAt.toISOString(),
+          service_expires_at: project.project_type === "landing_page" ? new Date(deliveredAt.getTime() + 30 * 86400000).toISOString() : null,
+        };
+      }
+      if (operation === "complete") changes = { status: "completed" };
+      if (!Object.keys(changes).length) return json({ error: "不支持的项目操作" }, 400);
       const { error } = await client.from("projects").update(changes).eq("id", id);
       if (error) throw error;
       return json({ success: true });
