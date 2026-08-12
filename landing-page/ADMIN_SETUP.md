@@ -8,6 +8,8 @@
 2. 打开 SQL Editor，执行 `supabase/schema.sql`。
 3. 在 Project Settings → API 获取 Project URL 和 `service_role` key。
 
+如果数据库此前使用过包含 GitHub/Netlify 授权功能的旧版本，也重新执行一次 `supabase/schema.sql`。脚本会删除旧的授权表、部署记录表和项目中的相关字段；测试阶段的这些旧数据不会保留。
+
 ## 2. 配置 Netlify 环境变量
 
 在 Netlify 站点的 Environment variables 中配置：

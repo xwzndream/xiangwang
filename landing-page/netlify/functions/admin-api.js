@@ -68,7 +68,7 @@ export default async function handler(req) {
       const delivered = input.delivered_at ? new Date(input.delivered_at) : null;
       const projectType = input.project_type === "landing_page" ? "landing_page" : "other";
       const expires = delivered && projectType === "landing_page" ? new Date(delivered.getTime() + 30 * 86400000).toISOString() : null;
-      const { data, error } = await client.from("projects").insert({ customer_id: input.customer_id, name: input.name, project_type: projectType, deployment_enabled: projectType === "landing_page", status: delivered ? "delivered" : "development", delivered_at: delivered?.toISOString() || null, service_expires_at: expires }).select().single();
+      const { data, error } = await client.from("projects").insert({ customer_id: input.customer_id, name: input.name, project_type: projectType, status: delivered ? "delivered" : "development", delivered_at: delivered?.toISOString() || null, service_expires_at: expires }).select().single();
       if (error) throw error;
       return json(data, 201);
     }
