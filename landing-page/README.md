@@ -6,6 +6,14 @@
 - 后台管理系统：`/admin`
 - 后台上线配置参见 `ADMIN_SETUP.md`
 
+## 增加作品
+
+把作品图片直接放入 `src/assets/image`，支持 `png`、`jpg`、`jpeg`、`webp` 和 `avif`。页面会自动读取该目录，不需要修改代码。
+
+- 图片文件名会作为作品标题，例如 `客户管理系统.png` 会显示为“客户管理系统”。
+- 建议使用清晰、比例相近的截图，文件名不要重复。
+- 添加图片后，用本机 Flet 部署工具提交并推送；GitHub 推送成功后 Netlify 会自动部署。
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
